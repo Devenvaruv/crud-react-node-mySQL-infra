@@ -272,7 +272,6 @@ jobs:
             
             echo "Checking container names that were created:"
             docker ps --format "{{.Names}}"
-            mysql --host="${DB_HOST}" --user="${DB_USER}" --password="${DB_PASSWORD}" "${DB_NAME}" -e "SELECT 1"
             echo "Waiting 25s for containers to fully initialize..."
             sleep 25
             
