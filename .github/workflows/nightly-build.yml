@@ -335,12 +335,12 @@ jobs:
           EOF
           
           # Copy the file to QA server
-          scp -o StrictHostKeyChecking=no -i ec2-key.pem \
+          scp -o StrictHostKeyChecking=no -i veckey.pem \
             docker-compose.ecr.yml \
             ec2-user@${{ secrets.EC2_PUBLIC_DNS }}:/home/ec2-user/crud-react-node-mySQL-go/docker-compose.ecr.yml
           
           # Deploy using the ECR config
-          ssh -o StrictHostKeyChecking=no -i ec2-key.pem ec2-user@${{ secrets.EC2_PUBLIC_DNS }} << EOF
+          ssh -o StrictHostKeyChecking=no -i veckey.pem ec2-user@${{ secrets.EC2_PUBLIC_DNS }} << EOF
             export AWS_REGION=${{ env.AWS_REGION }}
             export AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }}
             export AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}
