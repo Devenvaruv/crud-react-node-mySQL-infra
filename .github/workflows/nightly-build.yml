@@ -364,7 +364,11 @@ jobs:
             
             # Clean up old images
             docker image prune -f
-            docker-compose down
-            docker-compose up -d
+            docker-compose -f /home/ec2-user/crud-react-node-mySQL-go/docker-compose.ecr.yml \
+              --env-file /home/ec2-user/crud-react-node-mySQL-go/.env down
+
+            docker-compose -f /home/ec2-user/crud-react-node-mySQL-go/docker-compose.ecr.yml \
+              --env-file /home/ec2-user/crud-react-node-mySQL-go/.env up -d
+
             echo "Deployed to QA EC2 successfully."
           EOF
