@@ -279,10 +279,10 @@ jobs:
             echo "Found images. Using TIMESTAMP $TIMESTAMP for tagging."
             
             # Tag and push frontend
-            docker tag "$FRONTEND_IMAGE_ID" ${secrets.AWS_ACCOUNT_ID}.dkr.ecr.${secrets.AWS_REGION}.amazonaws.com/crud_frontend:frontend-$TIMESTAMP
-            docker tag "$FRONTEND_IMAGE_ID" ${secrets.AWS_ACCOUNT_ID}.dkr.ecr.${secrets.AWS_REGION}.amazonaws.com/crud_frontend:latest
-            docker push ${secrets.AWS_ACCOUNT_ID}.dkr.ecr.${secrets.AWS_REGION}.amazonaws.com/crud_frontend:frontend-$TIMESTAMP
-            docker push ${secrets.AWS_ACCOUNT_ID}.dkr.ecr.${secrets.AWS_REGION}.amazonaws.com/crud_frontend:latest
+            docker tag "$FRONTEND_IMAGE_ID" ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/crud_frontend:frontend-$TIMESTAMP
+            docker tag "$FRONTEND_IMAGE_ID" ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/crud_frontend:latest
+            docker push ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/crud_frontend:frontend-$TIMESTAMP
+            docker push ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/crud_frontend:latest
    
             docker tag "$BACKEND_IMAGE_ID" ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/crud_backend:backend-$TIMESTAMP
             docker tag "$BACKEND_IMAGE_ID" ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/crud_backend:latest
