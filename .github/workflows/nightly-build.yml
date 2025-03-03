@@ -275,8 +275,8 @@ jobs:
             # Tag and push to ECR
             echo "Identifying built images..."
             
-            FRONTEND_IMAGE_ID=$(docker images --filter=reference="source-nginx" --format "{{.ID}}")
-            BACKEND_IMAGE_ID=$(docker images --filter=reference="source-backend" --format "{{.ID}}")
+            FRONTEND_IMAGE_ID=$(docker images --filter=reference="my_frontend" --format "{{.ID}}")
+            BACKEND_IMAGE_ID=$(docker images --filter=reference="my_backend" --format "{{.ID}}")
             
             if [ -z "$FRONTEND_IMAGE_ID" ] || [ -z "$BACKEND_IMAGE_ID" ]; then
               echo "not find built images source-nginx or source-backend!!!!!"
