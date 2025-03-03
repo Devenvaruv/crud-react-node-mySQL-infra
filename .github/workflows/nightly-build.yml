@@ -60,7 +60,8 @@ jobs:
           echo "PUBLIC_DNS=$PUBLIC_DNS" >> $GITHUB_ENV
           echo "::set-output name=public_dns::$PUBLIC_DNS"
           echo "Ephemeral EC2 Hostname: $PUBLIC_DNS"
-      - name: Install Docker on  EC2
+
+      - name: Install Docker, git dockerCompose on EC2
         run: |
           TEMP_HOST="${{ steps.get_temp_ec2.outputs.public_dns }}"
           echo " SSH into ephemeral EC2 at $TEMP_HOST to install Docker..."
@@ -73,7 +74,7 @@ jobs:
             sudo service docker start
             sudo usermod -aG docker ec2-user
             
-            # Install Docker Compose
+            
             sudo curl -L \
               "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" \
               -o /usr/local/bin/docker-compose
@@ -86,7 +87,8 @@ jobs:
             
             mkdir -p ~/env_files
           EOF
-      - name: Setup Environment Files
+
+      - name: creating .env file and setup tests
         run: |
           TEMP_HOST="${{ steps.get_temp_ec2.outputs.public_dns }}"
 
@@ -227,7 +229,7 @@ jobs:
           ssh -o StrictHostKeyChecking=no -i veckey.pem ec2-user@"$TEMP_HOST" "chmod +x ~/env_files/smoke_tests.sh"
 
 
-      - name: Build & Test on C2
+      - name: Build & Test on EC2
         id: build_test_ec2
         run: |
           TEMP_HOST="${{ steps.get_temp_ec2.outputs.public_dns }}"
@@ -303,7 +305,7 @@ jobs:
 
             echo "tested + pushed to ECR succeeded."
           EOF
-      - name: Deploy to QA EC2
+      - name: Deploy to existing EC2
         if: success()
         run: |
           echo "Smoke test  succeeded. Deploying images to QA..."
@@ -343,7 +345,7 @@ jobs:
                 - frontend
           EOF
           
-          # Copy the file to QA server
+          
           scp -o StrictHostKeyChecking=no -i veckey.pem \
             docker-compose.ecr.yml \
             ec2-user@${{ secrets.EC2_PUBLIC_DNS }}:/home/ec2-user/crud-react-node-mySQL-go/docker-compose.ecr.yml
