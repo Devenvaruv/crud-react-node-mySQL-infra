@@ -212,7 +212,7 @@ jobs:
           scp -o StrictHostKeyChecking=no -i veckey.pem .env ec2-user@"$TEMP_HOST":~/env_files/
           scp -o StrictHostKeyChecking=no -i veckey.pem aws_creds.sh ec2-user@"$TEMP_HOST":~/env_files/
           scp -o StrictHostKeyChecking=no -i veckey.pem smoke_tests.sh ec2-user@"$TEMP_HOST":~/env_files/
-          scp -o StrictHostKeyChecking=no -i veckey.pem nginx_test_conf.txt ec2-user@"$TEMP_HOST":~/env_files/
+          scp -o StrictHostKeyChecking=no -i veckey.pem nginx_conf.txt ec2-user@"$TEMP_HOST":~/env_files/
           scp -o StrictHostKeyChecking=no -i veckey.pem docker_compose_test_override.txt ec2-user@"$TEMP_HOST":~/env_files/
           
           # Make smoke test script executable
