@@ -103,6 +103,18 @@ jobs:
           DB_PORT=3306
           EOF
 
+          # Before starting containers, test DB connectivity
+          echo "Testing database connectivity..."
+          apt-get update && apt-get install -y mysql-client || yum install -y mysql
+          mysql --host="${DB_HOST}" --user="${DB_USER}" --password="${DB_PASSWORD}" "${DB_NAME}" -e "SELECT 'Database connection successful'" || echo "Database connection failed"
+
+          # Check if the database host is reachable
+          echo "Checking if database is reachable..."
+          ping -c 4 ${DB_HOST} || echo "Cannot ping database host"
+
+          # Verify security group allows connection
+          echo "Verifying AWS security group..."
+          aws ec2 describe-security-groups --group-ids sg-0ae6c1dd53518265f --query "SecurityGroups[0].IpPermissions[?ToPort==3306]" 
           
           
           # Create AWS credentials file
@@ -272,8 +284,8 @@ jobs:
             
             echo "Checking container names that were created:"
             docker ps --format "{{.Names}}"
-            echo "Waiting 25s for containers to fully initialize..."
-            sleep 25
+            echo "Waiting 10s for containers to initialize..."
+            sleep 10
             
             ~/env_files/smoke_tests.sh
             
