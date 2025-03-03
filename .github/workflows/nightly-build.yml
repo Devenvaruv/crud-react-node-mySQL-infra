@@ -108,16 +108,6 @@ jobs:
           export AWS_ACCOUNT_ID=${{ secrets.AWS_ACCOUNT_ID }}
           export SOURCE_REPO_URL=${{ secrets.SOURCE_REPO_URL }}
           EOF
-
-          mkdir -p nginx-test-conf/ssl
-          openssl req -x509 -nodes -days 365 \
-            -newkey rsa:2048 \
-            -subj "/CN=localhost" \
-            -keyout nginx-test-conf/ssl/privkey.pem \
-            -out nginx-test-conf/ssl/fullchain.pem
-          # Set up test nginx configuration
-          mkdir -p nginx-test-conf
-          cp /home/ec2-user/env_files/nginx_conf.txt nginx-test-conf/default.conf
           
           # Create a simplified nginx test configuration
           cat > nginx_conf.txt << 'EOF'
