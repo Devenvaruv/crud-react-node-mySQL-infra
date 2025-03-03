@@ -272,7 +272,8 @@ jobs:
             
             # Tag and push to ECR
             echo "Identifying built images..."
-            
+
+            NGINX_IMAGE_ID=$(docker images --filter=reference="nginx:latest" --format "{{.ID}}")
             FRONTEND_IMAGE_ID=$(docker images --filter=reference="source-frontend" --format "{{.ID}}")
             BACKEND_IMAGE_ID=$(docker images --filter=reference="source-backend" --format "{{.ID}}")
             
@@ -294,7 +295,12 @@ jobs:
             docker tag "$BACKEND_IMAGE_ID" ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/crud_backend:latest
             docker push ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/crud_backend:backend-$TIMESTAMP
             docker push ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/crud_backend:latest
-            
+
+            docker tag "$NGINX_IMAGE_ID" ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/nginx:nginx-$TIMESTAMP
+            docker tag "$NGINX_IMAGE_ID" ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/nginx:latest
+            docker push ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/nginx:nginx-$TIMESTAMP
+            docker push ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/nginx:latest
+
             echo "tested + pushed to ECR succeeded."
           EOF
       - name: Deploy to QA EC2
@@ -303,13 +309,13 @@ jobs:
           echo "Smoke test  succeeded. Deploying images to QA..."
           
           cat > docker-compose.ecr.yml << EOF
-          version: "3.9"
+          
           services:
             backend:
               image: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/crud_backend
               container_name: my_backend
               expose:
-                - "8800"
+                - "8800:8800"
               environment:
                 - DB_HOST=\${DB_HOST}
                 - DB_USER=\${DB_USER}
@@ -320,12 +326,21 @@ jobs:
               image: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/crud_frontend
               container_name: my_frontend
               ports:
-                - "80:80"
-                - "443:443"
+                - "5173:5173"
               depends_on:
                 - backend
+            nginx:
+              image: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/nginx
+              container_name: nginx
+              ports:
+                - "80:80"
+                - "443:443"
               volumes:
-                - ./nginx/default.conf:/etc/nginx/conf.d/default.conf
+                - ./nginx.conf:/etc/nginx/nginx.conf:ro
+                - /etc/nginx/ssl:/etc/nginx/ssl:ro
+              depends_on:
+                - backend
+                - frontend
           EOF
           
           # Copy the file to QA server
