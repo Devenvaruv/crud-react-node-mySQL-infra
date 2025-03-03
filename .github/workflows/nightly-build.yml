@@ -44,7 +44,7 @@ jobs:
           echo "EC2 is now running. Sleeping 10..."
           sleep 10
         
-      - name: Set up SSH Key
+      - name: Set up SSH
         run: |
           echo "${{ secrets.EC2_SSH_KEY }}" > ec2-key.pem
           chmod 400 ec2-key.pem
@@ -58,3 +58,29 @@ jobs:
           echo "PUBLIC_DNS=$PUBLIC_DNS" >> $GITHUB_ENV
           echo "::set-output name=public_dns::$PUBLIC_DNS"
           echo "Ephemeral EC2 Hostname: $PUBLIC_DNS"
+      - name: Install Docker on  EC2
+        run: |
+          TEMP_HOST="${{ steps.get_temp_ec2.outputs.public_dns }}"
+          echo " SSH into ephemeral EC2 at $TEMP_HOST to install Docker..."
+
+          ssh -o StrictHostKeyChecking=no -i veckey.pem ec2-user@"$TEMP_HOST" << 'EOF'
+            set -e
+            echo "✅ Connected to ephemeral EC2. Installing Docker + Docker Compose..."
+            sudo yum update -y
+            sudo yum install -y docker git jq
+            sudo service docker start
+            sudo usermod -aG docker ec2-user
+            
+            # Install Docker Compose
+            sudo curl -L \
+              "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" \
+              -o /usr/local/bin/docker-compose
+            sudo chmod +x /usr/local/bin/docker-compose
+            
+            echo "Docker version:"
+            docker --version
+            echo "Docker Compose version:"
+            docker-compose --version
+            
+            mkdir -p ~/env_files
+          EOF
