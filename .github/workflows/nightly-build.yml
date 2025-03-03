@@ -249,11 +249,14 @@ jobs:
             
             # Copy the .env file
             cp ~/env_files/.env .
+
+            sed -i '/443:443/d' docker-compose.yml
+            sed -i '/\/etc\/nginx\/ssl:/d' docker-compose.yml
             
-            docker-compose -f docker-compose.test.yml --env-file .env build
+            docker-compose -f docker-compose.yml --env-file .env build
             
             echo "Starting containers with docker-compose and test override..."
-            docker-compose -f docker-compose.test.yml --env-file .env up -d
+            docker-compose -f docker-compose.yml -f docker-compose.test.yml --env-file .env up -d
             
             echo "Checking container names that were created:"
             docker ps --format "{{.Names}}"
