@@ -263,7 +263,7 @@ jobs:
             docker-compose -f docker-compose.yml -f docker-compose.test.yml --env-file .env up -d backend frontend test_nginx
             
             echo "Checking container names that were created:"
-            docker ps --format "{{.Names}}"
+            docker ps
             echo "Waiting 10s for containers to initialize..."
             sleep 10
             
@@ -275,11 +275,11 @@ jobs:
             # Tag and push to ECR
             echo "Identifying built images..."
             
-            FRONTEND_IMAGE_ID=$(docker images --filter=reference="crud-react-node-mysql-go-frontend" --format "{{.ID}}")
-            BACKEND_IMAGE_ID=$(docker images --filter=reference="crud-react-node-mysql-go-backend" --format "{{.ID}}")
+            FRONTEND_IMAGE_ID=$(docker images --filter=reference="my_frontend" --format "{{.ID}}")
+            BACKEND_IMAGE_ID=$(docker images --filter=reference="my_backend" --format "{{.ID}}")
             
             if [ -z "$FRONTEND_IMAGE_ID" ] || [ -z "$BACKEND_IMAGE_ID" ]; then
-              echo "not find built images source-nginx or source-backend!!!!!"
+              echo "not find built front or backend!!!!!"
               exit 1
             fi
             
