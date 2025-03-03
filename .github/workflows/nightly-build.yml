@@ -133,6 +133,7 @@ jobs:
           
           services:
             nginx:
+              container_name: nginx
               ports:
                 - "80:80"
               volumes:
@@ -273,7 +274,7 @@ jobs:
             BACKEND_IMAGE_ID=$(docker images --filter=reference="source-backend" --format "{{.ID}}")
             
             if [ -z "$FRONTEND_IMAGE_ID" ] || [ -z "$BACKEND_IMAGE_ID" ]; then
-              echo "not find built images source-nginx or source-backend!"
+              echo "not find built images source-nginx or source-backend!!!!!"
               exit 1
             fi
             
