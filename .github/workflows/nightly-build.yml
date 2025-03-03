@@ -217,3 +217,77 @@ jobs:
           
           # Make smoke test script executable
           ssh -o StrictHostKeyChecking=no -i veckey.pem ec2-user@"$TEMP_HOST" "chmod +x ~/env_files/smoke_tests.sh"
+
+
+      - name: Build & Test on C2
+        id: build_test_ec2
+        run: |
+          TEMP_HOST="${{ steps.get_temp_ec2.outputs.public_dns }}"
+          echo "SSHinto ephemeral EC2 at $TEMP_HOST for build and test..."
+
+          ssh -o StrictHostKeyChecking=no -i veckey.pem ec2-user@"$TEMP_HOST" << 'EOF'
+            set -e
+            
+            
+            source ~/env_files/aws_creds.sh
+            
+            # Log into ECR
+            aws ecr get-login-password --region ${secrets.AWS_REGION} \
+              | docker login --username AWS --password-stdin ${secrets.AWS_ACCOUNT_ID}.dkr.ecr.${secrets.AWS_REGION}.amazonaws.com
+
+            # Clone the source repo
+            git clone ${secrets.SOURCE_REPO_URL} source
+            cd source
+            
+            # Set up test nginx configuration
+            mkdir -p nginx-test-conf
+            cp ~/env_files/nginx_conf.txt nginx-test-conf/default.conf
+            cp ~/env_files/docker_compose_test_override.txt docker-compose.test.yml
+            
+            # Copy the .env file
+            cp ~/env_files/.env .
+            
+            docker-compose -f docker-compose.yml --env-file .env build
+            
+            echo "Starting containers with docker-compose and test override..."
+            docker-compose -f docker-compose.yml -f docker-compose.test.yml --env-file .env up -d
+            
+           
+            echo "Checking container names that were created:"
+            docker ps --format "{{.Names}}"
+            
+            echo "Waiting 25s for containers to fully initialize..."
+            sleep 25
+            
+            ~/env_files/smoke_tests.sh
+            
+            # Stop containers
+            docker-compose -f docker-compose.yml -f docker-compose.test.yml --env-file .env down
+            
+            # Tag and push to ECR
+            echo "Identifying built images..."
+            
+            FRONTEND_IMAGE_ID=$(docker images --filter=reference="source-nginx" --format "{{.ID}}")
+            BACKEND_IMAGE_ID=$(docker images --filter=reference="source-backend" --format "{{.ID}}")
+            
+            if [ -z "$FRONTEND_IMAGE_ID" ] || [ -z "$BACKEND_IMAGE_ID" ]; then
+              echo "not find built images source-nginx or source-backend!"
+              exit 1
+            fi
+            
+            TIMESTAMP=$(date "+%Y%m%d.%H%M%S")
+            echo "Found images. Using TIMESTAMP $TIMESTAMP for tagging."
+            
+            # Tag and push frontend
+            docker tag "$FRONTEND_IMAGE_ID" ${secrets.AWS_ACCOUNT_ID}.dkr.ecr.${secrets.AWS_REGION}.amazonaws.com/crud_frontend:frontend-$TIMESTAMP
+            docker tag "$FRONTEND_IMAGE_ID" ${secrets.AWS_ACCOUNT_ID}.dkr.ecr.${secrets.AWS_REGION}.amazonaws.com/crud_frontend:latest
+            docker push ${secrets.AWS_ACCOUNT_ID}.dkr.ecr.${secrets.AWS_REGION}.amazonaws.com/crud_frontend:frontend-$TIMESTAMP
+            docker push ${secrets.AWS_ACCOUNT_ID}.dkr.ecr.${secrets.AWS_REGION}.amazonaws.com/crud_frontend:latest
+   
+            docker tag "$BACKEND_IMAGE_ID" ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/crud_backend:backend-$TIMESTAMP
+            docker tag "$BACKEND_IMAGE_ID" ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/crud_backend:latest
+            docker push ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/crud_backend:backend-$TIMESTAMP
+            docker push ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/crud_backend:latest
+            
+            echo "tested + pushed to ECR succeeded."
+          EOF
