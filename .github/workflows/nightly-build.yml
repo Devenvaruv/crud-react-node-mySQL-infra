@@ -102,21 +102,7 @@ jobs:
           DB_NAME=${{ secrets.RDS_DBNAME }}
           DB_PORT=3306
           EOF
-
-          # # Before starting containers, test DB connectivity
-          # echo "Testing database connectivity..."
-          # yum update && yum install -y mysql-client || yum install -y mysql
-          # mysql --host="${DB_HOST}" --user="${DB_USER}" --password="${DB_PASSWORD}" "${DB_NAME}" -e "SELECT 'Database connection successful'" || echo "Database connection failed"
-
-          # # Check if the database host is reachable
-          # echo "Checking if database is reachable..."
-          # ping -c 4 ${DB_HOST} || echo "Cannot ping database host"
-
-          # # Verify security group allows connection
-          # echo "Verifying AWS security group..."
-          # aws ec2 describe-security-groups --group-ids sg-0ae6c1dd53518265f --query "SecurityGroups[0].IpPermissions[?ToPort==3306]" 
-          
-          
+          source .env
           # Create AWS credentials file
           cat > aws_creds.sh << EOF
           export AWS_REGION=${{ secrets.AWS_REGION }}
