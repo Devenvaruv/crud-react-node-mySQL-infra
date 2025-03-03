@@ -1,0 +1,37 @@
+name: Deploy to EC2
+
+on:
+  schedule:
+    - cron: "0 8 * * *"
+  workflow_dispatch:
+
+jobs:
+  deploy-to-ec2:
+    runs-on: ubuntu-latest
+
+    environment: DATABASE_URL 
+      
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Launch to EC2
+        id: launch-ec2
+        run: |
+          INSTANCE_ID=$(aws ec2 run-instances \
+            --image-id ami-05b10e08d247fb927 \
+            --count 1 \
+            --instance-type t2.micro \
+            --key-name veckey \
+            --security-group-ids sg-0ae6c1dd53518265f \
+            --subnet-id subnet-091d221d42dca0d3f \
+            --query 'Instances[0].InstanceId' \
+            --output text)
