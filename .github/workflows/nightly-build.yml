@@ -137,7 +137,7 @@ jobs:
               ports:
                 - "80:80"
               volumes:
-                - ./nginx-test-conf/default.conf:/etc/nginx/nginx.conf:ro
+                - ./nginx-test-conf/default.conf:/etc/nginx/conf.d/default.conf:ro
           EOF
           
           # Create enhanced smoke test script with debugging and retries
