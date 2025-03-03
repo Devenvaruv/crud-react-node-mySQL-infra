@@ -108,13 +108,16 @@ jobs:
           export AWS_ACCOUNT_ID=${{ secrets.AWS_ACCOUNT_ID }}
           export SOURCE_REPO_URL=${{ secrets.SOURCE_REPO_URL }}
           EOF
+
           mkdir -p nginx-test-conf/ssl
           openssl req -x509 -nodes -days 365 \
             -newkey rsa:2048 \
             -subj "/CN=localhost" \
             -keyout nginx-test-conf/ssl/privkey.pem \
             -out nginx-test-conf/ssl/fullchain.pem
-
+          # Set up test nginx configuration
+          mkdir -p nginx-test-conf
+          cp ~/env_files/nginx_conf.txt nginx-test-conf/default.conf
           # Create a simplified nginx test configuration
           cat > nginx_conf.txt << 'EOF'
           server {
@@ -132,7 +135,9 @@ jobs:
               }
           }
           EOF
-          
+          # Add to your build_test_ec2 script
+          echo "Testing database connectivity..."
+          mysql -h $DB_HOST -u $DB_USER -p$DB_PASSWORD -e "SELECT 1" $DB_NAME || echo "Database connection failed"
           # Create a docker-compose test override
           cat > docker_compose_test_override.txt << 'EOF'
           version: "3.9"
@@ -145,6 +150,7 @@ jobs:
               volumes:
                 - ./nginx-test-conf/default.conf:/etc/nginx/conf.d/default.conf:ro
                 - ./nginx-test-conf/ssl:/etc/nginx/ssl:ro
+              command: [nginx-debug, '-g', 'daemon off;']  
           EOF
           
           # Create enhanced smoke test script with debugging and retries
@@ -238,7 +244,6 @@ jobs:
           ssh -o StrictHostKeyChecking=no -i veckey.pem ec2-user@"$TEMP_HOST" << 'EOF'
             set -e
             
-            
             source ~/env_files/aws_creds.sh
             
             # Log into ECR
@@ -262,7 +267,6 @@ jobs:
             echo "Starting containers with docker-compose and test override..."
             docker-compose -f docker-compose.yml -f docker-compose.test.yml --env-file .env up -d
             
-           
             echo "Checking container names that were created:"
             docker ps --format "{{.Names}}"
             
