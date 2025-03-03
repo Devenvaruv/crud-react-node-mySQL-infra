@@ -10,6 +10,8 @@ jobs:
     runs-on: ubuntu-latest
 
     environment: DATABASE_URL 
+    env: 
+      SOURCE_REPO_URL: https://github.com/Devenvaruv/crud-react-node-mySQL-source.git
       
     steps:
       - name: Checkout Code
@@ -48,7 +50,7 @@ jobs:
         run: |
           echo "${{ secrets.EC2_SSH_KEY }}" > veckey.pem
           chmod 400 veckey.pem
-      - name: Fetch Ephemeral EC2 Hostname
+      - name: get temp EC2 Hostname
         id: get_temp_ec2
         run: |
           PUBLIC_DNS=$(aws ec2 describe-instances \
@@ -65,7 +67,7 @@ jobs:
 
           ssh -o StrictHostKeyChecking=no -i veckey.pem ec2-user@"$TEMP_HOST" << 'EOF'
             set -e
-            echo "✅ Connected to ephemeral EC2. Installing Docker + Docker Compose..."
+            echo "Connected to ephemeral EC2. Installing Docker + Docker Compose..."
             sudo yum update -y
             sudo yum install -y docker git jq
             sudo service docker start
@@ -114,7 +116,7 @@ jobs:
           
               # Proxy /api requests to backend
               location /api/ {
-                  proxy_pass http://backend:8800/;
+                  proxy_pass http://my_backend:8800/;
               }
           
               # React fallback
@@ -174,7 +176,7 @@ jobs:
           docker logs nginx || echo "Could not get nginx logs"
           
           echo "Displaying backend container"
-          docker logs backend || echo "Could not get backend logs"
+          docker logs my_backend || echo "Could not get backend logs"
 
           echo "--- Checking React frontend at root URL ---"
           if retry_curl "http://localhost/"; then
