@@ -143,13 +143,17 @@ jobs:
           version: "3.9"
           
           services:
-            nginx:
+            test_nginx:
+              image: nginx:latest
               container_name: nginx
               ports:
                 - "80:80"
               volumes:
                 - ./nginx-test-conf/default.conf:/etc/nginx/conf.d/default.conf:ro
               command: [nginx-debug, '-g', 'daemon off;']  
+              depends_on:
+                - backend
+                - frontend
           EOF
           
           # Create enhanced smoke test script with debugging and retries
@@ -256,7 +260,7 @@ jobs:
             docker-compose -f docker-compose.yml --env-file .env build
             
             echo "Starting containers with docker-compose and test override..."
-            docker-compose -f docker-compose.yml -f docker-compose.test.yml --env-file .env up -d
+            docker-compose -f docker-compose.yml -f docker-compose.test.yml --env-file .env up -d backend frontend test_nginx
             
             echo "Checking container names that were created:"
             docker ps --format "{{.Names}}"
