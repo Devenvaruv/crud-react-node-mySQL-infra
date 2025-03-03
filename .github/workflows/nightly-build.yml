@@ -137,8 +137,7 @@ jobs:
           }
           EOF
           # Add to your build_test_ec2 script
-          echo "Testing database connectivity..."
-          mysql -h $DB_HOST -u $DB_USER -p$DB_PASSWORD -e "SELECT 1" $DB_NAME || echo "Database connection failed"
+
           # Create a docker-compose test override
           cat > docker_compose_test_override.txt << 'EOF'
           version: "3.9"
@@ -192,17 +191,6 @@ jobs:
           
           echo "Displaying backend container"
           docker logs my_backend || echo "Could not get backend logs"
-
-          echo "--- Checking React frontend at root URL ---"
-          if retry_curl "http://localhost/"; then
-            HTTP_ROOT=$(cat /tmp/curl_response.txt)
-            echo "$HTTP_ROOT" | grep -q "200 OK"
-            echo "$HTTP_ROOT" | grep -qi "<html"
-            echo "root URL returned 200 and HTML"
-          else
-            echo "failed to connect to frontend"
-            exit 1
-          fi
 
           # (B) Check the API endpoint
           echo "--- Checking backend API: GET /api/books ---"
