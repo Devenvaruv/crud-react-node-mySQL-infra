@@ -300,9 +300,8 @@ jobs:
       - name: Deploy to QA EC2
         if: success()
         run: |
-          echo "Smoke test  succeeded. Deploying latest images to QA..."
+          echo "Smoke test  succeeded. Deploying images to QA..."
           
-          # Create ECR-specific docker-compose file locally
           cat > docker-compose.ecr.yml << EOF
           version: "3.9"
           services:
@@ -334,7 +333,6 @@ jobs:
             docker-compose.ecr.yml \
             ec2-user@${{ secrets.EC2_PUBLIC_DNS }}:/home/ec2-user/crud-react-node-mySQL-go/docker-compose.ecr.yml
           
-          # Deploy using the ECR config
           ssh -o StrictHostKeyChecking=no -i veckey.pem ec2-user@${{ secrets.EC2_PUBLIC_DNS }} << EOF
             export AWS_REGION=${{ env.AWS_REGION }}
             export AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }}
@@ -347,7 +345,7 @@ jobs:
               | docker login --username AWS --password-stdin \${AWS_ACCOUNT_ID}.dkr.ecr.\${AWS_REGION}.amazonaws.com
 
             docker-compose \
-              -f /home/ec2-user/crud-react-node-mySQL-go/docker-compose.prod.yml \
+              -f /home/ec2-user/crud-react-node-mySQL-go/docker-compose.yml \
               --env-file /home/ec2-user/crud-react-node-mySQL-go/.env down -v
 
             docker rmi crud_frontend crud_backend || true
@@ -364,11 +362,6 @@ jobs:
             
             # Clean up old images
             docker image prune -f
-            docker-compose -f /home/ec2-user/crud-react-node-mySQL-go/docker-compose.ecr.yml \
-              --env-file /home/ec2-user/crud-react-node-mySQL-go/.env down
-
-            docker-compose -f /home/ec2-user/crud-react-node-mySQL-go/docker-compose.ecr.yml \
-              --env-file /home/ec2-user/crud-react-node-mySQL-go/.env up -d
 
             echo "Deployed to QA EC2 successfully."
           EOF
