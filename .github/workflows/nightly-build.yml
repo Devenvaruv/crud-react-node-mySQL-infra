@@ -91,7 +91,8 @@ jobs:
           TEMP_HOST="${{ steps.get_temp_ec2.outputs.public_dns }}"
 
           # Test database connectivity
-          mysql -h ${DB_HOST} -u ${DB_USER} -p${DB_PASSWORD} -e "SELECT 1" ${DB_NAME}
+          # Correct way to test database connectivity
+          
           
           # Create .env file content locally
           cat > .env << EOF
@@ -101,6 +102,8 @@ jobs:
           DB_NAME=${{ secrets.RDS_DBNAME }}
           DB_PORT=3306
           EOF
+
+          mysql --host="${DB_HOST}" --user="${DB_USER}" --password="${DB_PASSWORD}" "${DB_NAME}" -e "SELECT 1"
           
           # Create AWS credentials file
           cat > aws_creds.sh << EOF
@@ -116,10 +119,16 @@ jobs:
           cat > nginx_conf.txt << 'EOF'
           server {
               listen 80;
-          
+              server_name localhost;
+
               # Proxy /api requests to backend
               location /api/ {
-                  proxy_pass http://my_backend:8800/;
+                proxy_pass http://my_backend:8800/;
+                proxy_http_version 1.1;
+                proxy_set_header Upgrade $http_upgrade;
+                proxy_set_header Connection 'upgrade';
+                proxy_set_header Host $host;
+                proxy_cache_bypass $http_upgrade;
               }
           
               # React fallback
