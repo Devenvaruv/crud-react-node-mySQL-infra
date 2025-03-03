@@ -117,7 +117,8 @@ jobs:
             -out nginx-test-conf/ssl/fullchain.pem
           # Set up test nginx configuration
           mkdir -p nginx-test-conf
-          cp ~/env_files/nginx_conf.txt nginx-test-conf/default.conf
+          cp /home/ec2-user/env_files/nginx_conf.txt nginx-test-conf/default.conf
+          
           # Create a simplified nginx test configuration
           cat > nginx_conf.txt << 'EOF'
           server {
