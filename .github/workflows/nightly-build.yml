@@ -84,3 +84,136 @@ jobs:
             
             mkdir -p ~/env_files
           EOF
+      - name: Setup Environment Files
+        run: |
+          TEMP_HOST="${{ steps.get_temp_ec2.outputs.public_dns }}"
+          
+          # Create .env file content locally
+          cat > .env << EOF
+          DB_HOST=${{ secrets.RDS_ENDPOINT }}
+          DB_USER=${{ secrets.RDS_USERNAME }}
+          DB_PASSWORD=${{ secrets.RDS_PASSWORD }}
+          DB_NAME=${{ secrets.RDS_DBNAME }}
+          DB_PORT=3306
+          EOF
+          
+          # Create AWS credentials file
+          cat > aws_creds.sh << EOF
+          export AWS_REGION=${{ secrets.AWS_REGION }}
+          export AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }}
+          export AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          export AWS_SESSION_TOKEN=${{ secrets.AWS_SESSION_TOKEN }}
+          export AWS_ACCOUNT_ID=${{ secrets.AWS_ACCOUNT_ID }}
+          export SOURCE_REPO_URL=${{ secrets.SOURCE_REPO_URL }}
+          EOF
+          
+          # Create a simplified nginx test configuration
+          cat > nginx_conf.txt << 'EOF'
+          server {
+              listen 80;
+          
+              # Proxy /api requests to backend
+              location /api/ {
+                  proxy_pass http://backend:8800/;
+              }
+          
+              # React fallback
+              location / {
+                  root /usr/share/nginx/html;
+                  try_files $uri /index.html;
+              }
+          }
+          EOF
+          
+          # Create a docker-compose test override
+          cat > docker_compose_test_override.txt << 'EOF'
+          version: "3.9"
+          
+          services:
+            nginx:
+              ports:
+                - "80:80"
+              volumes:
+                - ./nginx-test-conf:/etc/nginx/conf.d
+          EOF
+          
+          # Create enhanced smoke test script with debugging and retries
+          cat > smoke_tests.sh << 'EOF'
+          #!/bin/bash
+          set -e
+
+          # Function to retry HTTP requests with timeout
+          function retry_curl() {
+            local URL=$1
+            local MAX_RETRIES=5
+            local RETRY_DELAY=5
+            local COUNT=0
+            local EXIT_CODE=0
+            local RESPONSE=""
+
+            echo "Attempting to connect to $URL (with retries)..."
+            
+            until [ $COUNT -ge $MAX_RETRIES ]; do
+              RESPONSE=$(curl -i -s -L -k $URL --max-time 10 || echo "CURL_FAILED")
+              
+              if [[ "$RESPONSE" != "CURL_FAILED" ]] && [[ "$RESPONSE" == *"200 OK"* ]]; then
+                echo "Successfully connected to $URL on attempt $((COUNT+1))"
+                echo "$RESPONSE" > /tmp/curl_response.txt
+                return 0
+              fi
+              
+              echo "attempt $((COUNT+1)) failed - waiting ${RETRY_DELAY}s before retrying..."
+              sleep $RETRY_DELAY
+              COUNT=$((COUNT+1))
+            done
+            
+            echo "Failed to connect to $URL after $MAX_RETRIES attempts"
+            return 1
+          }
+
+          docker logs nginx || echo "Could not get nginx logs"
+          
+          echo "Displaying backend container"
+          docker logs backend || echo "Could not get backend logs"
+
+          echo "--- Checking React frontend at root URL ---"
+          if retry_curl "http://localhost/"; then
+            HTTP_ROOT=$(cat /tmp/curl_response.txt)
+            echo "$HTTP_ROOT" | grep -q "200 OK"
+            echo "$HTTP_ROOT" | grep -qi "<html"
+            echo "root URL returned 200 and HTML"
+          else
+            echo "failed to connect to frontend"
+            exit 1
+          fi
+
+          # (B) Check the API endpoint
+          echo "--- Checking backend API: GET /api/books ---"
+          if retry_curl "http://localhost/api/books"; then
+            HTTP_API=$(cat /tmp/curl_response.txt)
+            echo "$HTTP_API" | grep -q "200 OK"
+            JSON_BODY=$(echo "$HTTP_API" | awk '/^\[|^\{/{flag=1} flag{print}')
+            if [[ "$JSON_BODY" =~ ^(\[|\{) ]]; then
+              echo "/api/books endpoint returned 200 and valid JSON"
+              echo "JSON response: $JSON_BODY"
+            else
+              echo "/api/books returned 200 but did not contain JSON"
+              exit 1
+            fi
+          else
+            echo "Failed to connect to API endpoint"
+            exit 1
+          fi
+
+          echo "all smoke tests passed successfully!"
+          EOF
+          
+          # Copy files to EC2 instance
+          scp -o StrictHostKeyChecking=no -i veckey.pem .env ec2-user@"$TEMP_HOST":~/env_files/
+          scp -o StrictHostKeyChecking=no -i veckey.pem aws_creds.sh ec2-user@"$TEMP_HOST":~/env_files/
+          scp -o StrictHostKeyChecking=no -i veckey.pem smoke_tests.sh ec2-user@"$TEMP_HOST":~/env_files/
+          scp -o StrictHostKeyChecking=no -i veckey.pem nginx_test_conf.txt ec2-user@"$TEMP_HOST":~/env_files/
+          scp -o StrictHostKeyChecking=no -i veckey.pem docker_compose_test_override.txt ec2-user@"$TEMP_HOST":~/env_files/
+          
+          # Make smoke test script executable
+          ssh -o StrictHostKeyChecking=no -i veckey.pem ec2-user@"$TEMP_HOST" "chmod +x ~/env_files/smoke_tests.sh"
