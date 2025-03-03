@@ -33,7 +33,7 @@ jobs:
             --count 1 \
             --instance-type t2.micro \
             --key-name veckey \
-            --security-group-ids sg-0a2a8024d9745284b \
+            --security-group-ids sg-0ae6c1dd53518265f \
             --subnet-id subnet-091d221d42dca0d3f \
             --query 'Instances[0].InstanceId' \
             --output text)
