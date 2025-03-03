@@ -254,8 +254,6 @@ jobs:
             # Copy the .env file
             cp ~/env_files/.env .
 
-            sed -i '/443:443/d' docker-compose.yml
-            sed -i '/\/etc\/nginx\/ssl:/d' docker-compose.yml
             
             docker-compose -f docker-compose.yml --env-file .env build
             
@@ -328,9 +326,6 @@ jobs:
               depends_on:
                 - backend
               volumes:
-                - /etc/letsencrypt/live:/etc/letsencrypt/live:ro,Z
-                - /etc/letsencrypt/archive:/etc/letsencrypt/archive:ro,Z
-                - /etc/letsencrypt/keys:/etc/letsencrypt/keys:ro,Z
                 - ./nginx/default.conf:/etc/nginx/conf.d/default.conf
           EOF
           
@@ -369,6 +364,7 @@ jobs:
             
             # Clean up old images
             docker image prune -f
-            
+            docker-compose down
+            docker-compose up -d
             echo "Deployed to QA EC2 successfully."
           EOF
