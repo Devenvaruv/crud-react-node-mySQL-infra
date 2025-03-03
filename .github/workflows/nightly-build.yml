@@ -232,11 +232,11 @@ jobs:
             source ~/env_files/aws_creds.sh
             
             # Log into ECR
-            aws ecr get-login-password --region ${secrets.AWS_REGION} \
-              | docker login --username AWS --password-stdin ${secrets.AWS_ACCOUNT_ID}.dkr.ecr.${secrets.AWS_REGION}.amazonaws.com
+            aws ecr get-login-password --region ${AWS_REGION} \
+              | docker login --username AWS --password-stdin ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com
 
             # Clone the source repo
-            git clone ${secrets.SOURCE_REPO_URL} source
+            git clone ${SOURCE_REPO_URL} source
             cd source
             
             # Set up test nginx configuration
